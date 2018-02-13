@@ -196,6 +196,33 @@ var fluidPlayerClass = {
     },
 
 
+    getVastAdTagUriFromWrapper: function(wrapper) {
+
+        if (typeof wrapper !== 'undefined' && wrapper.length) {
+
+            var vastAdTagURI = wrapper[0].getElementsByTagName('VASTAdTagURI');
+            if (vastAdTagURI.length) {
+                return vastAdTagURI[0].childNodes[0].nodeValue;
+            }
+        }
+
+        return false;
+    },
+
+
+    hasVastAdTagUriFromWrapper: function(creative) {
+        var player = this;
+
+        if ((typeof creative !== 'undefined') && creative.length) {
+            var arrayCreativeLinears = creative[0].getElementsByTagName('Linear');
+            if ((typeof arrayCreativeLinears !== 'undefined') && (arrayCreativeLinears !== null) && arrayCreativeLinears.length) {
+                return player.getMediaFileFromLinear(arrayCreativeLinears[0]);
+            }
+        }
+
+        return false;
+    },
+
     getClickThroughUrlFromNonLinear: function (nonLinear) {
         var result = '';
         var nonLinears = nonLinear.getElementsByTagName('NonLinear');
@@ -513,7 +540,7 @@ var fluidPlayerClass = {
             var adListId = list[i];
 
             if (player.adList[adListId].vastLoaded !== true && player.adList[adListId].error !== true) {
-                player.parseVastTag(player.adList[adListId].vastTag, adListId);
+                player.processUrl(player.adList[adListId].vastTag, adListId);
                 videoPlayerTag.addEventListener('adId_' + adListId, player[roll]);
             }
         }
@@ -565,45 +592,24 @@ var fluidPlayerClass = {
 
     switchPlayerToVastMode: function() {},
 
-    /**
-     * Parse the VAST Tag
-     *
-     * @param vastTag
-     * @param adListId
-     */
-    parseVastTag: function(vastTag, adListId) {
+
+        /**
+         * Process the XML response
+         *
+         * @param xmlResponse
+         * @param adListId
+         */
+    processVastXml: function(xmlResponse, adListId) {
         var player = this;
 
         var tmpOptions = {
-            vastTagUrl:   vastTag,
             tracking:     [],
             stopTracking: [],
             vastLoaded: false
 
         };
 
-        player.sendRequest(
-            vastTag,
-            true,
-            player.displayOptions.vastTimeout,
-            function() {
-                var xmlHttpReq = this;
-
-                if ((xmlHttpReq.readyState === 4) && (xmlHttpReq.status !== 200)) {
-
-                    //Set the error flag for the Ad
-                    player.adList[adListId].error = true;
-
-                    //The response returned an error. Proceeding with the main video.
-                    player.playMainVideoWhenVastFails(900);
-                    return;
-                }
-
-                if (!((xmlHttpReq.readyState === 4) && (xmlHttpReq.status === 200))) {
-                    return;
-                }
-
-                var xmlResponse = xmlHttpReq.responseXML;
+        if(xmlResponse) {
 
                 //Get impression tag
                 var impression = xmlResponse.getElementsByTagName('Impression');
@@ -617,10 +623,6 @@ var fluidPlayerClass = {
                     player.registerErrorEvents(errorTags, tmpOptions);
                 }
 
-                //Set initial values
-                tmpOptions.skipoffset = false;
-                tmpOptions.adFinished = false;
-                tmpOptions.vastTagUrl = vastTag;
 
                 //Get Creative
                 var creative = xmlResponse.getElementsByTagName('Creative');
@@ -630,6 +632,11 @@ var fluidPlayerClass = {
                     var arrayCreativeLinears = creative[0].getElementsByTagName('Linear');
 
                     if ((typeof arrayCreativeLinears !== 'undefined') && (arrayCreativeLinears !== null) && arrayCreativeLinears.length) {
+
+                        //Set initial values
+                        tmpOptions.skipoffset = false;
+                        tmpOptions.adFinished = false;
+
                         var creativeLinear = arrayCreativeLinears[0];
 
                         tmpOptions.adType = 'linear';
@@ -672,6 +679,7 @@ var fluidPlayerClass = {
                         var event = document.createEvent('Event');
                         event.initEvent('adId_' + adListId, false, true);
                         document.getElementById(player.videoPlayerId).dispatchEvent(event);
+                        player.displayOptions.vastLoadedCallback();
                         return;
                     } else {
                         //announceError the main video
@@ -685,10 +693,89 @@ var fluidPlayerClass = {
                     player.playMainVideoWhenVastFails(101);
                     return;
                 }
-                player.displayOptions.vastLoadedCallback();
+
             }
-        );
     },
+
+    /**
+     * Parse the VAST Tag
+     *
+     * @param vastTag
+     * @param adListId
+     */
+    processUrl: function(vastTag, adListId) {
+        var player = this;
+        var numberOfJumps = 0;
+
+        player.toggleLoader(true);
+
+        var resolveVastTag = function (vastTag, callback, numberOfJumps) {
+
+            var handleXmlHttpReq = function () {
+                var xmlHttpReq = this;
+
+                if ((xmlHttpReq.readyState === 4) && (xmlHttpReq.status !== 200)) {
+                    player.playMainVideoWhenVastFails(900);
+                    return;
+                }
+
+                if (!((xmlHttpReq.readyState === 4) && (xmlHttpReq.status === 200))) {
+                    return;
+                }
+
+                numberOfJumps++;
+
+                var xmlResponse = xmlHttpReq.responseXML;
+
+                player.InLineFound = player.hasVastAdTagUriFromWrapper(xmlResponse.getElementsByTagName('Creative'));
+
+                if (!player.InLineFound) {
+                    var wrapper = xmlResponse.getElementsByTagName('Wrapper');
+
+                    if ((typeof wrapper !== 'undefined') && wrapper.length) {
+
+                        var vastAdTagURI = xmlResponse.getElementsByTagName('VASTAdTagURI');
+
+                        if ((typeof vastAdTagURI !== 'undefined') && vastAdTagURI.length) {
+                            resolveVastTag(player.getVastAdTagUriFromWrapper(wrapper), callback, numberOfJumps);
+                        }
+
+                    }
+
+                }
+
+                if (numberOfJumps >= player.maxVastTagJumps && !player.InLineFound) {
+                    player.playMainVideoWhenVastFails(101);
+                }
+
+                if (player.InLineFound) {
+                    callback(numberOfJumps);
+                    //We have got XML so Let's process it.
+                    player.processVastXml(xmlResponse, adListId);
+                }
+
+            };
+
+            if (numberOfJumps < player.maxVastTagJumps) {
+
+                player.sendRequest(
+                    vastTag,
+                    true,
+                    player.displayOptions.vastTimeout,
+                    handleXmlHttpReq
+                );
+
+            }
+
+        };
+
+
+        resolveVastTag(vastTag, function (numberOfJumps) {
+            console.log('eventually', numberOfJumps);
+        }, numberOfJumps);
+
+    },
+
 
     playRoll: function(adListId) {
         var player = this;
@@ -2995,7 +3082,6 @@ var fluidPlayerClass = {
         var videoPlayer = document.getElementById(idVideoPlayer);
 
         player.vastOptions = {
-            vastTagUrl:   '',
             tracking:     [],
             stopTracking: []
         };
@@ -3023,6 +3109,9 @@ var fluidPlayerClass = {
         player.supportedStaticTypes = ['image/gif', 'image/jpeg', 'image/png'];
         player.inactivityTimeout    = null;
         player.isUserActive         = null;
+        player.xmlCollection        = [];
+        player.InLineFound          = null;
+        player.maxVastTagJumps      = 3;
 
         //Default options
         player.displayOptions = {
