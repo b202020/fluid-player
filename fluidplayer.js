@@ -2985,7 +2985,7 @@ var fluidPlayerClass = {
                         clearTimeout(player.inactivityTimeout);
                     }
 
-                }, player.displayOptions.controlBar.autoHideTimeout);
+                }, player.displayOptions.controlBar.autoHideTimeout * 1000);
 
 
             }
@@ -3144,7 +3144,7 @@ var fluidPlayerClass = {
             keyboardControl:          true,
             controlBar: {
                 autoHide: false,
-                autoHideTimeout: 3000,
+                autoHideTimeout: 3,
                 animated: true
             },
             mute:                     false
