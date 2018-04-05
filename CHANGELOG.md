@@ -1,5 +1,34 @@
 # CHANGELOG
 
+## 2.1.2
+* [Pull #108](https://github.com/fluid-player/fluid-player/pull/108) Fullscreen API call fix
+* [Pull #110](https://github.com/fluid-player/fluid-player/pull/110) Improvements for iOs safari (use default skin) and mobile screens
+* [Pull #111](https://github.com/fluid-player/fluid-player/pull/111) Adjust how iconClickThrough is gotten
+
+## 2.1.1
+* [Pull #107](https://github.com/fluid-player/fluid-player/pull/107) Download and Theatre fixes
+
+## 2.1
+* [Pull #101](https://github.com/fluid-player/fluid-player/pull/101) Quality indicator
+* [Pull #102](https://github.com/fluid-player/fluid-player/pull/102) API functions
+* [Pull #103](https://github.com/fluid-player/fluid-player/pull/103) Landing page displayed in In-Stream ads
+* [Pull #104](https://github.com/fluid-player/fluid-player/pull/104) Theater mode, download & playback rate
+
+## 2.0
+* [Pull #91](https://github.com/fluid-player/fluid-player/pull/91) Version 2 Changes:
+  * New default template
+  * Add play button
+  * Play pause animations
+  * Restructuring of optional parameters
+  * Remove templates 
+  * General fixes 
+
+## 1.2.2
+* [Pull #88](https://github.com/fluid-player/fluid-player/pull/88) Improve nonlinear ads
+
+## 1.2.1
+* [Pull #86](https://github.com/fluid-player/fluid-player/pull/86) [Pull #87](https://github.com/fluid-player/fluid-player/pull/87) Mid roll current time fix
+
 ## 1.2.0
 * [Pull #68](https://github.com/fluid-player/fluid-player/pull/68) Controls remain fullscreen after escaping fullscreen
 * [Pull #66](https://github.com/fluid-player/fluid-player/pull/66) Optional logoUrl for clickable logo
