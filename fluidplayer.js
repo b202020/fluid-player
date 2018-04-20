@@ -755,7 +755,7 @@ var fluidPlayerClass = {
 
                 }
 
-                if (numberOfJumps >= player.maxVastTagJumps && !player.InLineFound) {
+                if (numberOfJumps >= player.displayOptions.vastOptions.maxVastTagJumps && !player.InLineFound) {
                     player.playMainVideoWhenVastFails(101);
                 }
 
@@ -767,12 +767,12 @@ var fluidPlayerClass = {
 
             };
 
-            if (numberOfJumps < player.maxVastTagJumps) {
+            if (numberOfJumps < player.displayOptions.vastOptions.maxVastTagJumps) {
 
                 player.sendRequest(
                     vastTag,
                     true,
-                    player.displayOptions.vastTimeout,
+                    player.displayOptions.vastOptions.vastTimeout,
                     handleXmlHttpReq
                 );
 
@@ -3563,7 +3563,6 @@ var fluidPlayerClass = {
         player.originalHeight          = videoPlayer.offsetHeight;
         player.xmlCollection           = [];
         player.InLineFound             = null;
-        player.maxVastTagJumps      = 3;
 
         //Default options
         player.displayOptions = {
@@ -3608,6 +3607,7 @@ var fluidPlayerClass = {
                 adText:                       null,
                 adCTAText:                    'Visit now!',
                 vastTimeout:                  5000,
+                maxVastTagJumps:              3,
 
                 vastAdvanced: {
                     vastLoadedCallback:       (function() {}),
