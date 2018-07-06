@@ -601,6 +601,10 @@ var fluidPlayerClass = {
 
 
     announceLocalError: function (code, msg) {
+        var player = this;
+        if(player.doDebugLevel(0) || !window.console) {
+            return;
+        }
         if (typeof(code) !== 'undefined') {
             code = parseInt(code);
         } else {
@@ -610,6 +614,32 @@ var fluidPlayerClass = {
         message = '[Error] (' + code + '): ';
         message += (!msg) ? 'Failed to load Vast' : msg;
         console.log(message);
+    },
+
+    logError: function (code, errorMessage) {
+        var player = this;
+        if(player.doDebugLevel(0) || !window.console) {
+            return;
+        }
+
+        var errors = {
+            '900': {level: 1, msg: 'Unknown error'}
+        };
+
+        code = (typeof(code) === 'undefined' || !errors.hasOwnProperty('code')) ? 900 : parseInt(code);
+        errorMessage = (typeof(errorMessage) !== 'undefined' && errorMessage != '') ? errorMessage : errors[code]['msg'];
+        var message = '[Error] (' + code + '): ' + errorMessage;
+        console.log(message);
+    },
+
+    doDebugLevel: function (level) {
+        //this = player
+        return this.getDebugLevel() == level;
+    },
+
+    getDebugLevel: function () {
+        //this = player
+        return this.displayOptions.debugLevel;
     },
 
     getClickTrackingEvents: function(linear) {
@@ -4338,6 +4368,15 @@ var fluidPlayerClass = {
         var player = this;
         var videoPlayer = document.getElementById(idVideoPlayer);
 
+
+        if(videoPlayer === null){
+            if(player.doDebugLevel(1)) {
+                player.announceLocalError(102, '"' + idVideoPlayer + '" is not a valid options property in this level. This property will be ignored.');
+            }
+            return;
+        }
+
+
         videoPlayer.setAttribute('playsinline', '');
         videoPlayer.setAttribute('webkit-playsinline', '');
 
@@ -4469,18 +4508,36 @@ var fluidPlayerClass = {
                     vastVideoSkippedCallback: (function() {}),
                     vastVideoEndedCallback:   (function() {})
                 }
-            }
+            },
+            debugLevel: 0
         };
 
         // Overriding the default options
         for (var key in options) {
-            if(typeof options[key] == "object") {
+
+            if (!player.displayOptions.hasOwnProperty(key)) {
+                player.announceLocalError(102, '"' + key + '" is not a valid options property in this level. This property will be ignored.');
+                continue;
+            }
+
+
+            if(options.hasOwnProperty(key) && typeof options[key] == "object") {
                 for (var subKey in options[key]) {
+                    if (!player.displayOptions[key].hasOwnProperty(subKey)) {
+                        player.announceLocalError(102, '"' + subKey + '" is not a valid property in ' + key + ' property. This property will be ignored.');
+                        continue;
+                    }
+
                     player.displayOptions[key][subKey] = options[key][subKey];
                 }
             } else {
                 player.displayOptions[key] = options[key];
             }
+        }
+
+        if(player.doDebugLevel(2)) {
+            console.log('Fluid player version: ', player.version);
+            console.log('Fluid player configuration: ', player.displayOptions);
         }
 
         player.setupPlayerWrapper();
